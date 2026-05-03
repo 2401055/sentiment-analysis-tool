@@ -11,50 +11,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('errorMessage');
     
     let polarityChart = null;
+    let debounceTimer;
 
-    // Character Counter
+    // Hide the button as it's now real-time
+    if (analyzeBtn) {
+        analyzeBtn.style.display = 'none';
+    }
+
+    // Real-time Input Listener
     textInput.addEventListener('input', () => {
-        const length = textInput.value.length;
-        currentCharCount.textContent = length;
-    });
-
-    // Analyze Button Click
-    analyzeBtn.addEventListener('click', async () => {
         const text = textInput.value.trim();
-        
+        const length = text.length;
+        currentCharCount.textContent = length;
+
+        clearTimeout(debounceTimer);
+
         if (!text) {
-            showError('Please enter some text to analyze.');
+            hideError();
+            resultSection.classList.add('hidden');
+            loading.classList.add('hidden');
             return;
         }
 
-        // Reset UI
-        hideError();
-        resultSection.classList.add('hidden');
-        loading.classList.remove('hidden');
-
-        // Simulate a delay for the "Analyzing..." effect in the static demo
-        setTimeout(() => {
-            try {
-                // In a real app, this would be a fetch to the Flask backend.
-                // For the GitHub Pages static demo, we use a simple client-side logic.
-                const result = analyzeSentimentLocally(text);
-                displayResult(result);
-            } catch (error) {
-                showError('An error occurred during analysis.');
-                console.error('Error:', error);
-            } finally {
-                loading.classList.add('hidden');
-            }
-        }, 800);
+        debounceTimer = setTimeout(() => {
+            performAnalysisLocally(text);
+        }, 500);
     });
 
-    /**
-     * Simple client-side sentiment analysis for the static demo.
-     * Note: The real app uses TextBlob in the Flask backend.
-     */
+    function performAnalysisLocally(text) {
+        hideError();
+        loading.classList.remove('hidden');
+
+        // Simulate processing delay
+        setTimeout(() => {
+            const result = analyzeSentimentLocally(text);
+            displayResult(result);
+            loading.classList.add('hidden');
+        }, 300);
+    }
+
     function analyzeSentimentLocally(text) {
-        const positiveWords = ['love', 'good', 'great', 'awesome', 'amazing', 'happy', 'excellent', 'wonderful', 'best'];
-        const negativeWords = ['hate', 'bad', 'terrible', 'awful', 'worst', 'sad', 'angry', 'poor', 'disappointing'];
+        const positiveWords = ['love', 'good', 'great', 'awesome', 'amazing', 'happy', 'excellent', 'wonderful', 'best', 'cool', 'nice'];
+        const negativeWords = ['hate', 'bad', 'terrible', 'awful', 'worst', 'sad', 'angry', 'poor', 'disappointing', 'horrible', 'ugly'];
         
         const words = text.toLowerCase().match(/\w+/g) || [];
         let score = 0;
@@ -64,9 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (negativeWords.includes(word)) score -= 0.4;
         });
 
-        // Clamp score between -1 and 1
         const polarity = Math.max(-1, Math.min(1, score));
-        
         let sentiment = 'Neutral';
         if (polarity > 0) sentiment = 'Positive';
         else if (polarity < 0) sentiment = 'Negative';
