@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const textInput = document.getElementById('textInput');
     const currentCharCount = document.getElementById('currentCharCount');
-    const analyzeBtn = document.getElementById('analyzeBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn'); // Kept for accessibility but hidden or secondary
     const loading = document.getElementById('loading');
     const resultSection = document.getElementById('resultSection');
     const resultCard = document.querySelector('.result-card');
@@ -11,25 +11,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('errorMessage');
     
     let polarityChart = null;
+    let debounceTimer;
 
-    // Character Counter
+    // Hide the button as it's now real-time
+    if (analyzeBtn) {
+        analyzeBtn.style.display = 'none';
+    }
+
+    // Real-time Input Listener
     textInput.addEventListener('input', () => {
-        const length = textInput.value.length;
-        currentCharCount.textContent = length;
-    });
-
-    // Analyze Button Click
-    analyzeBtn.addEventListener('click', async () => {
         const text = textInput.value.trim();
-        
+        const length = text.length;
+        currentCharCount.textContent = length;
+
+        // Clear previous timer
+        clearTimeout(debounceTimer);
+
         if (!text) {
-            showError('Please enter some text to analyze.');
+            hideError();
+            resultSection.classList.add('hidden');
+            loading.classList.add('hidden');
             return;
         }
 
-        // Reset UI
+        // Set a new timer (debounce 500ms)
+        debounceTimer = setTimeout(() => {
+            performAnalysis(text);
+        }, 500);
+    });
+
+    async function performAnalysis(text) {
+        // Reset UI for new analysis
         hideError();
-        resultSection.classList.add('hidden');
         loading.classList.remove('hidden');
 
         try {
@@ -54,17 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             loading.classList.add('hidden');
         }
-    });
+    }
 
     function displayResult(data) {
         const { sentiment, polarity } = data;
         
-        // Set Label and Score
         sentimentLabel.textContent = sentiment;
         polarityScore.textContent = polarity;
 
-        // Set Emoji and Colors
-        resultCard.className = 'result-card'; // Reset classes
+        resultCard.className = 'result-card';
         if (sentiment === 'Positive') {
             sentimentEmoji.textContent = '😊';
             resultCard.classList.add('positive');
@@ -76,10 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resultCard.classList.add('neutral');
         }
 
-        // Show Section
         resultSection.classList.remove('hidden');
-
-        // Update Chart
         updateChart(polarity);
     }
 
